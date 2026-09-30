@@ -141,39 +141,38 @@ export async function removeShift(form: FormData) {
   });
 }
 
-export async function saveShiftStaffing(form: FormData) {
+export async function saveShiftDayStaffing(form: FormData) {
   await dashboardAction(async () => {
     const user = await requireUser();
+    const weekday = integer(form, "weekday", 1, 7);
     const shiftId = uuid(form, "shiftId");
     await transaction(async client => {
-      const shift = await client.query("SELECT id FROM shift_templates WHERE id=$1 AND organization_id=$2 AND active FOR UPDATE", [shiftId, user.organizationId]);
+      const shift = await client.query<{ id: string; name: string }>(
+        "SELECT id,name FROM shift_templates WHERE id=$1 AND organization_id=$2 AND active FOR UPDATE", [shiftId, user.organizationId]);
       if (!shift.rowCount) throw new Error("شیفت فعال پیدا نشد.");
       const roles = await client.query<{ id: string; name: string }>("SELECT id,name FROM roles WHERE organization_id=$1 ORDER BY id", [user.organizationId]);
       if (!roles.rowCount) throw new Error("ابتدا تخصص‌ها را تعریف کنید.");
-      const entries: { weekday: number; roleId: string; count: number }[] = [];
-      for (let weekday = 1; weekday <= 7; weekday++) {
-        for (const role of roles.rows) {
-          const key = `need:${weekday}:${role.id}`;
-          const raw = String(form.get(key) ?? "").trim();
-          const count = Number(raw);
-          if (!raw || !Number.isInteger(count) || count < 0 || count > 50) {
-            throw new Error(`تعداد موردنیاز «${role.name}» باید بین صفر و ۵۰ باشد.`);
-          }
-          entries.push({ weekday, roleId: role.id, count });
+      const entries: { roleId: string; count: number }[] = [];
+      for (const role of roles.rows) {
+        const raw = String(form.get(`need:${role.id}`) ?? "").trim();
+        const count = Number(raw);
+        if (!raw || !Number.isInteger(count) || count < 0 || count > 50) {
+          throw new Error(`تعداد «${role.name}» در شیفت «${shift.rows[0].name}» باید بین صفر و ۵۰ باشد.`);
         }
+        entries.push({ roleId: role.id, count });
       }
       for (const entry of entries) {
         if (entry.count === 0) {
-          await client.query("DELETE FROM coverage WHERE organization_id=$1 AND shift_id=$2 AND role_id=$3 AND weekday=$4", [user.organizationId, shiftId, entry.roleId, entry.weekday]);
+          await client.query("DELETE FROM coverage WHERE organization_id=$1 AND shift_id=$2 AND role_id=$3 AND weekday=$4", [user.organizationId, shiftId, entry.roleId, weekday]);
         } else {
           await client.query(`INSERT INTO coverage(id,organization_id,shift_id,role_id,weekday,required_count)
             VALUES($1,$2,$3,$4,$5,$6)
             ON CONFLICT(organization_id,shift_id,role_id,weekday) DO UPDATE SET required_count=EXCLUDED.required_count`,
-            [randomUUID(), user.organizationId, shiftId, entry.roleId, entry.weekday, entry.count]);
+            [randomUUID(), user.organizationId, shiftId, entry.roleId, weekday, entry.count]);
         }
       }
     });
-    return "تعداد نیروی موردنیاز هر تخصص برای روزهای این شیفت ذخیره شد. برای اعمال تغییرات، برنامه را دوباره بسازید.";
+    return "نیاز این روز و شیفت ذخیره شد. برای اعمال تغییرات، برنامه را دوباره بسازید.";
   });
 }
 

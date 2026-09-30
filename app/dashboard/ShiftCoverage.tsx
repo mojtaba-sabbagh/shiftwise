@@ -1,7 +1,8 @@
 import { Plus, Trash2 } from "lucide-react";
-import { addShift, removeShift, saveShiftStaffing } from "@/app/actions";
+import { addShift, removeShift } from "@/app/actions";
 import { faNumber } from "@/lib/format";
 import type { OrganizationData } from "@/lib/data";
+import { ShiftRequirementMatrix } from "./ShiftRequirementMatrix";
 
 const weekdays = [
   { value: 6, label: "شنبه" }, { value: 7, label: "یکشنبه" },
@@ -14,52 +15,23 @@ export function ShiftCoverage({ data }: { data: OrganizationData }) {
   return <section id="coverage" className="mt-10 scroll-mt-6">
     <div className="mb-5">
       <span className="text-sm font-bold text-[#29906e]">۰۲ / نیاز سازمان</span>
-      <h2 className="section-title mt-2">شیفت‌ها و تعداد تخصص‌ها</h2>
-      <p className="mt-2 text-sm text-[#71877b]">برای هر شیفت و هر روز، تعداد افراد موردنیاز هر تخصص را مشخص کنید. صفر یعنی آن تخصص در آن روز و شیفت نیاز نیست.</p>
+        <h2 className="section-title mt-2">شیفت‌ها</h2>
     </div>
-    <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
-      <div className="space-y-4">
-        {data.shifts.map((shift, index) => <div key={shift.id} className="card overflow-hidden">
-          <details open={index === 0}>
-            <summary className="cursor-pointer px-6 py-5 text-base font-bold text-[#244b40]">
-              {shift.name} <span className="mr-2 font-normal text-[#71877b]">{shift.startTime.slice(0, 5)} تا {shift.endTime.slice(0, 5)}{shift.endTime <= shift.startTime ? " (روز بعد)" : ""}</span>
-            </summary>
-            <div className="border-t border-[#e8f0eb] px-6 py-5">
-              {data.roles.length ? <form action={saveShiftStaffing}>
-                <input type="hidden" name="shiftId" value={shift.id}/>
-                <div className="table-wrap">
-                  <table className="min-w-[520px]">
-                    <thead><tr><th>روز هفته</th>{data.roles.map(role => <th key={role.id} className="text-center">{role.name}</th>)}</tr></thead>
-                    <tbody>{weekdays.map(day => <tr key={day.value}>
-                      <th scope="row" className="text-right">{day.label}</th>
-                      {data.roles.map(role => {
-                        const count = data.coverage.find(item => item.weekday === day.value && item.shiftId === shift.id && item.roleId === role.id)?.count ?? 0;
-                        return <td key={role.id} className="text-center">
-                          <input type="number" name={`need:${day.value}:${role.id}`} min={0} max={50} required
-                            aria-label={`تعداد ${role.name} در شیفت ${shift.name} روز ${day.label}`}
-                            defaultValue={count} className="mini-input mx-auto w-20 text-center"/>
-                        </td>;
-                      })}
-                    </tr>)}</tbody>
-                  </table>
-                </div>
-                <p className="mt-3 text-sm text-[#71877b]">تغییرات این جدول برای همهٔ هفته‌های آینده اعمال می‌شود. پس از ذخیره، برنامه را دوباره بسازید.</p>
-                <button className="btn btn-primary mt-4">ذخیرهٔ تعداد تخصص‌ها</button>
-              </form> : <p className="text-sm text-[#71877b]">ابتدا در بخش «تیم و مهارت‌ها» تخصص‌ها را ثبت کنید.</p>}
-            </div>
-          </details>
-          <form action={removeShift} className="border-t border-[#e8f0eb] px-6 py-3">
+    <div className="grid gap-5 lg:grid-cols-2">
+      <div className="card overflow-hidden">
+        <h3 className="border-b border-[#e8f0eb] px-6 py-4 text-base font-bold">الگوهای شیفت</h3>
+        {data.shifts.map(shift => <div key={shift.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e8f0eb] px-6 py-3 last:border-0">
+          <div><strong className="text-sm text-[#244b40]">{shift.name}</strong><span className="mr-2 text-sm text-[#71877b]">{shift.startTime.slice(0, 5)} تا {shift.endTime.slice(0, 5)}</span></div>
+          <form action={removeShift}>
             <input type="hidden" name="shiftId" value={shift.id}/>
-            <button className="btn-link inline-flex items-center gap-2 text-[#aa5e51]" aria-label={`حذف شیفت ${shift.name}`}>
-              <Trash2 size={16}/> حذف شیفت از برنامه‌های آینده
-            </button>
+            <button className="btn-link inline-flex items-center gap-1 text-[#aa5e51]" aria-label={`حذف شیفت ${shift.name}`}><Trash2 size={16}/> حذف</button>
           </form>
         </div>)}
-        {!data.shifts.length && <div className="card p-8 text-center text-sm text-[#82968b]">هنوز شیفت فعالی ثبت نشده است. از فرم روبه‌رو یک شیفت اضافه کنید.</div>}
+        {!data.shifts.length && <p className="px-6 py-5 text-sm text-[#82968b]">هنوز شیفتی تعریف نشده است.</p>}
       </div>
-      <div className="card h-fit p-6">
+      <div className="card p-6">
         <h3 className="text-base font-bold">افزودن شیفت</h3>
-        <p className="mt-2 text-sm leading-7 text-[#71877b]">سه شیفت صبح، عصر و شب هنگام ایجاد محیط کار به‌صورت پیش‌فرض ساخته می‌شوند. می‌توانید شیفت دیگری اضافه کنید.</p>
+        <p className="mt-2 text-sm leading-7 text-[#71877b]">سه شیفت صبح، عصر و شب برای محیط‌های کار جدید پیش‌فرض هستند. تعداد موردنیاز هر روز را از جدول همان روز تنظیم کنید.</p>
         <form action={addShift} className="mt-4 space-y-3">
           <label className="block"><span className="label">نام شیفت</span><input name="name" className="mini-input" placeholder="مثلاً صبح" required maxLength={60}/></label>
           <div className="grid grid-cols-2 gap-2">
@@ -68,7 +40,31 @@ export function ShiftCoverage({ data }: { data: OrganizationData }) {
           </div>
           <button className="btn btn-dark w-full"><Plus size={15}/> افزودن شیفت</button>
         </form>
-        <p className="mt-4 text-sm text-[#71877b]">{faNumber(data.shifts.length)} شیفت فعال · {faNumber(data.coverage.length)} نیاز ثبت‌شده</p>
+        <p className="mt-4 text-sm text-[#71877b]">{faNumber(data.shifts.length)} الگوی شیفت · {faNumber(data.coverage.length)} نیاز ثبت‌شده برای روزها و شیفت‌ها</p>
+      </div>
+    </div>
+    <div className="mb-5">
+      <h2 className="section-title mt-2">تعداد تخصص‌ها به تفکیک روز-شیفت</h2>
+      <p className="mt-2 text-sm text-[#71877b]">هر روز را باز کنید؛ هر شیفت یک سطر دارد و تعداد افراد موردنیاز هر تخصص در ستون همان نقش ثبت می‌شود.</p>
+    </div>
+    <div className="space-y-5">
+      <div className="space-y-4">
+        {weekdays.map((day, index) => {
+          const dayCoverage = data.coverage.filter(item => item.weekday === day.value);
+          const shiftCount = new Set(dayCoverage.map(item => item.shiftId)).size;
+          return <div key={day.value} className="card overflow-hidden">
+            <details open={index === 0}>
+              <summary className="cursor-pointer px-6 py-5 text-base font-bold text-[#244b40]">
+                {day.label} <span className="mr-2 font-normal text-[#71877b]">{faNumber(shiftCount)} شیفت دارای نیاز · {faNumber(dayCoverage.reduce((sum, item) => sum + item.count, 0))} جایگاه</span>
+              </summary>
+              <div className="min-w-0 border-t border-[#e8f0eb] px-4 py-5 sm:px-6">
+                {data.shifts.length && data.roles.length
+                  ? <ShiftRequirementMatrix day={day} shifts={data.shifts} roles={data.roles} coverage={dayCoverage}/>
+                  : <p className="text-sm text-[#71877b]">برای ثبت نیاز این روز، ابتدا شیفت و تخصص تعریف کنید.</p>}
+              </div>
+            </details>
+          </div>;
+        })}
       </div>
     </div>
   </section>;

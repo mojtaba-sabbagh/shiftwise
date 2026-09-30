@@ -1,0 +1,50 @@
+.hint { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; color:#416a5d; font-size:15px; font-weight:700; }
+.help { display:inline-grid; place-items:center; width:30px; height:30px; border-radius:50%; color:#327860; cursor:help; }
+.help:focus-visible, .stepper button:focus-visible, .stepper input:focus-visible, .saveButton:focus-visible { outline:2px solid #168a75; outline-offset:2px; }
+.desktop { display:block; }
+.mobile { display:none; }
+.scroller { max-height:460px; overflow:auto; border:1px solid #dfeae3; border-radius:12px; }
+.table { width:max-content; min-width:100%; border-collapse:separate; border-spacing:0; }
+.table th, .table td { min-width:174px; padding:13px 12px; border-bottom:1px solid #e6eee8; text-align:center; white-space:nowrap; }
+.table tbody tr:last-child th, .table tbody tr:last-child td { border-bottom:0; }
+.table thead th { position:sticky; top:0; z-index:3; background:#edf5f0; color:#315b4c; font-size:15px; white-space:normal; }
+.table tbody td { background:#fff; }
+.table tbody .altRow td { background:#f8fbf9; }
+.table .shiftColumn { position:sticky; right:0; z-index:2; min-width:192px; width:192px; text-align:right; box-shadow:-1px 0 0 #dfeae3; }
+.table thead .shiftColumn { z-index:5; }
+.table tbody .shiftColumn { background:#f1f7f3; border-right:4px solid #559979; }
+.table .shiftColumn strong, .table .shiftColumn span { display:block; }
+.table .shiftColumn strong { color:#244b40; font-size:16px; }
+.table .shiftColumn span { margin-top:5px; color:#668275; font-size:14px; font-weight:400; }
+.table tbody .shiftColumn.tone0 { background:#eaf4fb; border-right-color:#69a8cd; }
+.table tbody .shiftColumn.tone1 { background:#fff3e9; border-right-color:#e5a268; }
+.table tbody .shiftColumn.tone2 { background:#f2eef9; border-right-color:#a18ac5; }
+.table .totalColumn { min-width:108px; }
+.table .totalColumn strong { color:#275943; font-size:16px; }
+.table .actionColumn { position:sticky; left:0; z-index:2; min-width:112px; background:#fff; box-shadow:1px 0 0 #dfeae3; }
+.table tbody .altRow .actionColumn { background:#f8fbf9; }
+.table thead .actionColumn { z-index:5; background:#edf5f0; }
+.stepper { display:inline-flex; align-items:center; justify-content:center; height:44px; border:1px solid #cadfd2; border-radius:10px; background:#fff; overflow:hidden; }
+.stepper button { display:grid; place-items:center; flex:none; width:37px; height:42px; color:#267356; }
+.stepper button:hover:not(:disabled) { background:#eaf6ee; }
+.stepper button:disabled { color:#b7c9bd; cursor:not-allowed; }
+.stepper input { width:48px; height:42px; border:0; border-inline:1px solid #e5eee8; outline:none; background:#fff; color:#254f3f; text-align:center; font-size:16px; font-weight:700; appearance:textfield; }
+.stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { margin:0; appearance:none; }
+.saveButton { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:42px; padding:8px 12px; border:0; border-radius:9px; background:#1a7958; color:#fff; font-size:15px; font-weight:700; white-space:nowrap; }
+.saveButton:hover { background:#126346; }
+.mobileCard { border:1px solid #dfeae3; border-radius:14px; background:#fff; padding:15px; }
+.mobileHeader { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:-15px -15px 8px; padding:14px 15px; border-radius:14px 14px 0 0; border-right:4px solid #559979; background:#f1f7f3; }
+.mobileHeader.tone0 { border-right-color:#69a8cd; background:#eaf4fb; }
+.mobileHeader.tone1 { border-right-color:#e5a268; background:#fff3e9; }
+.mobileHeader.tone2 { border-right-color:#a18ac5; background:#f2eef9; }
+.mobileHeader strong, .mobileHeader span { display:block; }
+.mobileHeader strong { color:#244b40; font-size:16px; }
+.mobileHeader span { margin-top:3px; color:#668275; font-size:14px; }
+.mobileHeader b { color:#275943; font-size:16px; white-space:nowrap; }
+.mobileRole { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid #edf2ee; color:#385d4d; font-size:15px; }
+.mobileRole > span { min-width:0; }
+.mobileCard > .saveButton { width:100%; margin-top:15px; }
+@media (max-width:767px) {
+  .desktop { display:none; }
+  .mobile { display:grid; gap:12px; }
+}

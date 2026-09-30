@@ -110,23 +110,36 @@ async function main() {
     const shift = (await pool.query("SELECT id FROM shift_templates WHERE organization_id=$1 AND name=$2", [orgId, "آزمایشی"])).rows[0].id;
 
     dashboard = await page("/dashboard", activeCookie);
-    const staffing = Object.fromEntries([1,2,3,4,5,6,7].flatMap(day => [
-      [`need:${day}:${role}`, day === 6 ? "1" : "0"],
-      [`need:${day}:${secondRole}`, day === 6 ? "3" : "0"],
-    ]));
+    const staffing = { [`need:${role}`]:"1", [`need:${secondRole}`]:"3" };
     const coverageResult = await submit("/dashboard", dashboard.html, `name="shiftId" value="${shift}"`, {
-      shiftId:shift, ...staffing,
+      weekday:"6", shiftId:shift, ...staffing,
     }, activeCookie);
     assert.ok([303,307].includes(coverageResult.status), `Coverage action: ${coverageResult.status}`);
     const staffingRows = await pool.query("SELECT role_id,required_count FROM coverage WHERE organization_id=$1 AND shift_id=$2 ORDER BY role_id", [orgId, shift]);
     assert.deepEqual(new Map(staffingRows.rows.map(row => [row.role_id, row.required_count])), new Map([[role, 1], [secondRole, 3]]));
     dashboard = await page("/dashboard", activeCookie);
     const updatedCoverage = await submit("/dashboard", dashboard.html, `name="shiftId" value="${shift}"`, {
-      shiftId:shift, ...staffing, [`need:6:${secondRole}`]:"0",
+      weekday:"6", shiftId:shift, ...staffing, [`need:${secondRole}`]:"0",
     }, activeCookie);
     assert.ok([303,307].includes(updatedCoverage.status));
     assert.deepEqual((await pool.query("SELECT role_id,required_count FROM coverage WHERE organization_id=$1 AND shift_id=$2", [orgId, shift])).rows,
       [{ role_id:role, required_count:1 }]);
+
+    const otherShift = (await pool.query("SELECT id FROM shift_templates WHERE organization_id=$1 AND name=$2", [orgId, "عصر"])).rows[0].id;
+    dashboard = await page("/dashboard", activeCookie);
+    const otherCoverage = await submit("/dashboard", dashboard.html, 'aria-label="تعداد بازرس آزمایشی در شیفت عصر روز یکشنبه"', {
+      weekday:"7", shiftId:otherShift, [`need:${role}`]:"0", [`need:${secondRole}`]:"2",
+    }, activeCookie);
+    assert.ok([303,307].includes(otherCoverage.status));
+    assert.deepEqual((await pool.query("SELECT weekday,required_count FROM coverage WHERE organization_id=$1 AND shift_id=$2", [orgId, shift])).rows,
+      [{ weekday:6, required_count:1 }]);
+    assert.equal((await pool.query("SELECT required_count FROM coverage WHERE organization_id=$1 AND shift_id=$2 AND weekday=7", [orgId, otherShift])).rows[0].required_count, 2);
+    dashboard = await page("/dashboard", activeCookie);
+    const clearedCoverage = await submit("/dashboard", dashboard.html, 'aria-label="تعداد بازرس آزمایشی در شیفت عصر روز یکشنبه"', {
+      weekday:"7", shiftId:otherShift, [`need:${role}`]:"0", [`need:${secondRole}`]:"0",
+    }, activeCookie);
+    assert.ok([303,307].includes(clearedCoverage.status));
+    assert.equal((await pool.query("SELECT id FROM coverage WHERE organization_id=$1 AND shift_id=$2", [orgId, otherShift])).rowCount, 0);
 
     dashboard = await page("/dashboard", activeCookie);
     const generated = await submit("/dashboard", dashboard.html, 'name="weekStart"', { weekStart:"2026-09-26" }, activeCookie);
