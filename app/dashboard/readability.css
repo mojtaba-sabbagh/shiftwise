@@ -1,0 +1,52 @@
+.representative-readable .text-xs {
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.representative-readable .text-sm {
+  font-size: 16px;
+  line-height: 1.85;
+}
+
+.representative-readable [class~="text-[10px]"],
+.representative-readable [class~="text-[11px]"] {
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.representative-readable .sidebar-link {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.representative-readable .label {
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 9px;
+}
+
+.representative-readable .field,
+.representative-readable .mini-input {
+  font-size: 16px;
+  min-height: 44px;
+}
+
+.representative-readable .btn {
+  font-size: 15px;
+  min-height: 42px;
+}
+
+.representative-readable .btn-link,
+.representative-readable .badge {
+  font-size: 14px;
+}
+
+.representative-readable th {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.representative-readable td {
+  font-size: 15px;
+  line-height: 1.7;
+}

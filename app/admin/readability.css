@@ -1,0 +1,34 @@
+.admin-readable .text-xs {
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.admin-readable .text-sm {
+  font-size: 16px;
+  line-height: 1.9;
+}
+
+.admin-readable small {
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.admin-readable .label {
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 9px;
+}
+
+.admin-readable .field {
+  font-size: 16px;
+  min-height: 46px;
+}
+
+.admin-readable .btn {
+  font-size: 16px;
+  min-height: 44px;
+}
+
+.admin-readable .badge {
+  font-size: 14px;
+}
