@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { faNumber } from "@/lib/format";
-import { addDays, jalaliParts } from "@/lib/jalali";
+import { addDays, jalaliParts, saturdayIndex  } from "@/lib/jalali";
 import { rosterPage } from "@/lib/roster-page";
 
 type WorkerRow = { id: string; name: string; roles: string[] };

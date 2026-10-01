@@ -188,57 +188,9 @@ export default async function Dashboard({
           />
         </section>
 
-        <section className="mt-7 grid gap-5 xl:grid-cols-[1.55fr_1fr]" id="roster">
-          <div className="card overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e6efea] px-6 py-5">
-              <div>
-                <h2 className="section-title">برنامهٔ هفتگی</h2>
-                <p className="mt-1 text-xs text-[#81968d]">
-                  {run
-                    ? `هفتهٔ ${faDate(run.weekStart)} · ساخته‌شده در ${faDateTime(
-                        run.createdAt,
-                        user.timezone,
-                      )}`
-                    : "برنامهٔ تولیدشده در این بخش نمایش داده می‌شود."}
-                </p>
-              </div>
-              {run && (
-                <a href={`/api/export?run=${run.id}`} className="btn btn-light py-2 text-xs">
-                  <ArrowDownToLine size={15} /> دریافت CSV
-                </a>
-              )}
-            </div>
-            {run ? (
-              <RosterTable
-                weekStart={run.weekStart}
-                workers={data.workerRecords
-                  .filter(worker =>
-                    run.assignments.some(assignment => assignment.workerId === worker.id),
-                  )
-                  .map(worker => ({
-                    id: worker.id,
-                    name: worker.name,
-                    roles: worker.roleIds
-                      .map(id => roleNames.get(id))
-                      .filter((name): name is string => Boolean(name)),
-                  }))}
-                assignments={run.assignments}
-              />
-            ) : (
-              <div className="flex min-h-[270px] flex-col items-center justify-center px-7 text-center">
-                <div className="grid size-14 place-items-center rounded-2xl bg-[#e8f5ee] text-[#328264]">
-                  <CalendarDays size={26} />
-                </div>
-                <h3 className="mt-4 text-lg font-bold">برنامهٔ هفته از اینجا آغاز می‌شود</h3>
-                <p className="mt-2 max-w-sm text-sm leading-6 text-[#81948d]">
-                  کارکنان، شیفت‌ها و نیاز هر شیفت را ثبت کنید؛ سپس برنامهٔ هفتهٔ موردنظر را
-                  بسازید.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-5">
+        <section className="mt-7 space-y-5" id="roster">
+          {/* ردیف اول: ساخت برنامه + گزارش پوشش */}
+          <div className="grid gap-5 lg:grid-cols-2">
             <div className="card p-6">
               <div className="flex items-center gap-3">
                 <span className="grid size-10 place-items-center rounded-xl bg-[#e9f6ef] text-[#1c8d70]">
@@ -318,6 +270,56 @@ export default async function Dashboard({
                 );
               })}
             </div>
+          </div>
+
+          {/* ردیف دوم: برنامهٔ هفتگی با عرض کامل */}
+          <div className="card overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e6efea] px-6 py-5">
+              <div>
+                <h2 className="section-title">برنامهٔ هفتگی</h2>
+                <p className="mt-1 text-xs text-[#81968d]">
+                  {run
+                    ? `هفتهٔ ${faDate(run.weekStart)} · ساخته‌شده در ${faDateTime(
+                        run.createdAt,
+                        user.timezone,
+                      )}`
+                    : "برنامهٔ تولیدشده در این بخش نمایش داده می‌شود."}
+                </p>
+              </div>
+              {run && (
+                <a href={`/api/export?run=${run.id}`} className="btn btn-light py-2 text-xs">
+                  <ArrowDownToLine size={15} /> دریافت CSV
+                </a>
+              )}
+            </div>
+            {run ? (
+              <RosterTable
+                weekStart={run.weekStart}
+                workers={data.workerRecords
+                  .filter(worker =>
+                    run.assignments.some(assignment => assignment.workerId === worker.id),
+                  )
+                  .map(worker => ({
+                    id: worker.id,
+                    name: worker.name,
+                    roles: worker.roleIds
+                      .map(id => roleNames.get(id))
+                      .filter((name): name is string => Boolean(name)),
+                  }))}
+                assignments={run.assignments}
+              />
+            ) : (
+              <div className="flex min-h-[270px] flex-col items-center justify-center px-7 text-center">
+                <div className="grid size-14 place-items-center rounded-2xl bg-[#e8f5ee] text-[#328264]">
+                  <CalendarDays size={26} />
+                </div>
+                <h3 className="mt-4 text-lg font-bold">برنامهٔ هفته از اینجا آغاز می‌شود</h3>
+                <p className="mt-2 max-w-sm text-sm leading-6 text-[#81948d]">
+                  کارکنان، شیفت‌ها و نیاز هر شیفت را ثبت کنید؛ سپس برنامهٔ هفتهٔ موردنظر را
+                  بسازید.
+                </p>
+              </div>
+            )}
           </div>
         </section>
 
