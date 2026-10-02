@@ -24,6 +24,13 @@ const shifts = [
   { key: "evening", name: "عصر", start: "14:00", end: "22:00", operators: 2 },
   { key: "night", name: "شب", start: "22:00", end: "06:00", operators: 1 },
 ] as const;
+// Default soft rotation cycle for the demo: operators rotate through
+// morning → evening → night → rest. "off" marks a rest day. Re-seeding never
+// overwrites a pattern the representative has edited (ON CONFLICT DO NOTHING).
+const patterns = [
+  { key: "operator-default", role: "operator", name: "چرخش صبح ← عصر ← شب ← تعطیل", weight: 3,
+    steps: ["morning", "evening", "night", "off"] },
+] as const;
 
 function stableId(organizationId: string, key: string) {
   const bytes = createHash("sha256").update(`shiftwise-demo-v1:${organizationId}:${key}`).digest().subarray(0, 16);
@@ -56,7 +63,8 @@ async function main() {
         (SELECT count(*)::int FROM roles WHERE organization_id=$1) AS roles,
         (SELECT count(*)::int FROM workers WHERE organization_id=$1) AS workers,
         (SELECT count(*)::int FROM shift_templates WHERE organization_id=$1) AS shifts,
-        (SELECT count(*)::int FROM coverage WHERE organization_id=$1) AS coverage`, [org.id]);
+        (SELECT count(*)::int FROM coverage WHERE organization_id=$1) AS coverage,
+        (SELECT count(*)::int FROM rotation_patterns WHERE organization_id=$1) AS patterns`, [org.id]);
       const roleIds = new Map<string, string>();
       for (const role of roles) {
         await client.query("INSERT INTO roles(id,organization_id,name,color) VALUES($1,$2,$3,$4) ON CONFLICT(organization_id,name) DO NOTHING",
@@ -73,6 +81,7 @@ async function main() {
           await client.query("INSERT INTO worker_roles(worker_id,role_id) VALUES($1,$2) ON CONFLICT DO NOTHING", [workerId, roleIds.get(role.key)]);
         }
       }
+      const shiftIds = new Map<string, string>();
       for (const shift of shifts) {
         await client.query(`INSERT INTO shift_templates(id,organization_id,name,start_time,end_time)
           VALUES($1,$2,$3,$4,$5) ON CONFLICT(organization_id,name) DO NOTHING`,
@@ -82,6 +91,7 @@ async function main() {
         if (found.rows[0].start_time.slice(0, 5) !== shift.start || found.rows[0].end_time.slice(0, 5) !== shift.end) {
           throw new Error(`Shift «${shift.name}» has different hours; no data was changed.`);
         }
+        shiftIds.set(shift.key, found.rows[0].id);
         for (let weekday = 1; weekday <= 7; weekday++) {
           for (const role of roles) {
             const required = role.key === "operator" ? shift.operators : 1;
@@ -92,11 +102,20 @@ async function main() {
         }
       }
       await client.query("INSERT INTO scheduling_rules(organization_id) VALUES($1) ON CONFLICT DO NOTHING", [org.id]);
+      for (const pattern of patterns) {
+        const roleId = roleIds.get(pattern.role);
+        const steps = pattern.steps.map(step => (step === "off" ? "off" : shiftIds.get(step)));
+        if (!roleId || steps.some(step => !step)) throw new Error(`Pattern «${pattern.name}» references an unknown role or shift.`);
+        await client.query(`INSERT INTO rotation_patterns(id,organization_id,role_id,name,weight,steps)
+          VALUES($1,$2,$3,$4,$5,$6::jsonb) ON CONFLICT(organization_id,role_id,name) DO NOTHING`,
+          [stableId(org.id, `pattern:${pattern.key}`), org.id, roleId, pattern.name, pattern.weight, JSON.stringify(steps)]);
+      }
       const after = await client.query(`SELECT
         (SELECT count(*)::int FROM roles WHERE organization_id=$1) AS roles,
         (SELECT count(*)::int FROM workers WHERE organization_id=$1) AS workers,
         (SELECT count(*)::int FROM shift_templates WHERE organization_id=$1) AS shifts,
-        (SELECT count(*)::int FROM coverage WHERE organization_id=$1) AS coverage`, [org.id]);
+        (SELECT count(*)::int FROM coverage WHERE organization_id=$1) AS coverage,
+        (SELECT count(*)::int FROM rotation_patterns WHERE organization_id=$1) AS patterns`, [org.id]);
       return { before: before.rows[0], after: after.rows[0] };
     });
     const now = DateTime.now().setZone(org.timezone);

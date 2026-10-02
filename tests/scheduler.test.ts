@@ -114,6 +114,38 @@ test("CP-SAT maximizes coverage across conflicting shifts and accounts for leave
   assert.equal((await generateWithCpSat(input, 1)).assignments.length, 1);
 });
 
+test("CP-SAT steers shift order toward the role's rotation pattern without losing coverage", async () => {
+  const input = base();
+  input.workers = [
+    { id:"a", name:"الف", roleIds:["operator"] },
+    { id:"b", name:"ب", roleIds:["operator"] },
+  ];
+  input.shifts = [
+    { id:"M", name:"صبح", startTime:"07:00:00", endTime:"15:00:00" },
+    { id:"N", name:"عصر", startTime:"15:00:00", endTime:"23:00:00" },
+  ];
+  input.coverage = [
+    { id:"m1", weekday:1, shiftId:"M", roleId:"operator", count:1 },
+    { id:"n1", weekday:1, shiftId:"N", roleId:"operator", count:1 },
+    { id:"m2", weekday:2, shiftId:"M", roleId:"operator", count:1 },
+    { id:"n2", weekday:2, shiftId:"N", roleId:"operator", count:1 },
+  ];
+  // The cycle "morning → afternoon" rewards a worker swapping shifts the next day.
+  input.patterns = [{ id:"p", roleId:"operator", name:"صبح‌عصر", weight:5, steps:["M","N"] }];
+  const result = await generateWithCpSat(input, 7);
+  assert.equal(result.assignments.length, 4);
+  assert.equal(result.uncovered.length, 0);
+  let matched = 0;
+  for (const worker of input.workers) {
+    const own = result.assignments.filter(a => a.workerId === worker.id).sort((x, y) => x.position.startMs - y.position.startMs);
+    for (let i = 1; i < own.length; i++) {
+      const from = own[i - 1].position.shiftId, to = own[i].position.shiftId;
+      if ((from === "M" && to === "N") || (from === "N" && to === "M")) matched++;
+    }
+  }
+  assert.equal(matched, 2);
+});
+
 test("CP-SAT enforces consecutive days, weekly hours, and night limits", async () => {
   const input = base();
   input.workers = [{ id:"a", name:"A", roleIds:["operator"] }];

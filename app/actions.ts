@@ -16,6 +16,7 @@ const fieldLabels: Record<string, string> = {
   startTime:"ساعت آغاز", endTime:"ساعت پایان", startDate:"روز آغاز", endDate:"روز پایان",
   minRestHours:"حداقل استراحت", maxWeeklyHours:"حداکثر ساعت هفتگی", maxConsecutiveDays:"حداکثر روزهای پیاپی",
   maxNightShifts:"حداکثر شیفت شب", nightStartHour:"آغاز شب", weekStart:"آغاز هفته",
+  weight:"وزن", steps:"گام‌های الگو", patternId:"الگوی چرخش",
 };
 
 function value(form: FormData, key: string, max = 120) {
@@ -208,6 +209,55 @@ export async function updateRules(form: FormData) {
     await db().query(`UPDATE scheduling_rules SET min_rest_hours=$2,max_weekly_hours=$3,max_consecutive_days=$4,
       max_night_shifts=$5,night_start_hour=$6 WHERE organization_id=$1`, [user.organizationId, rest, hours, days, nights, nightStart]);
     return "قوانین به‌روز شد. برای اعمال آن‌ها برنامهٔ تازه بسازید.";
+  });
+}
+
+// Sentinel submitted by the panel's "همه نقش‌ها" option; must match
+// ALL_ROLES_SENTINEL in app/dashboard/RotationPatternBuilder.tsx.
+const ALL_ROLES = "__all__";
+
+export async function addRotationPattern(form: FormData) {
+  await dashboardAction(async () => {
+    const user = await requireUser();
+    const roleSelection = value(form, "roleId", 36);
+    const forAllRoles = roleSelection === ALL_ROLES;
+    if (!forAllRoles && !/^[a-f0-9-]{36}$/i.test(roleSelection)) throw new Error("نقش انتخاب‌شده معتبر نیست.");
+    const name = value(form, "name", 60);
+    const weight = integer(form, "weight", 1, 10);
+    let parsed: unknown;
+    try { parsed = JSON.parse(String(form.get("steps") || "[]")); }
+    catch { throw new Error("ترتیب گام‌های الگو نامعتبر است."); }
+    if (!Array.isArray(parsed) || parsed.length < 2 || parsed.length > 8 || parsed.some(token => typeof token !== "string")) {
+      throw new Error("الگوی چرخش باید بین ۲ تا ۸ گام داشته باشد.");
+    }
+    const steps = parsed as string[];
+    const shiftIds = [...new Set(steps.filter(token => token !== "off"))];
+    if (!shiftIds.length) throw new Error("الگو باید دست‌کم یک شیفت داشته باشد.");
+    const targets = forAllRoles
+      ? await db().query<{ id: string }>("SELECT id FROM roles WHERE organization_id=$1 ORDER BY name", [user.organizationId])
+      : await db().query<{ id: string }>("SELECT id FROM roles WHERE id=$1 AND organization_id=$2", [roleSelection, user.organizationId]);
+    if (!targets.rowCount) throw new Error(forAllRoles ? "ابتدا دست‌کم یک نقش تعریف کنید." : "نقش انتخاب‌شده معتبر نیست.");
+    const found = await db().query("SELECT id FROM shift_templates WHERE organization_id=$1 AND id=ANY($2::uuid[])", [user.organizationId, shiftIds]);
+    if (found.rowCount !== shiftIds.length) throw new Error("یک یا چند شیفت انتخاب‌شده معتبر نیست.");
+    await transaction(async client => {
+      for (const target of targets.rows) {
+        await client.query(`INSERT INTO rotation_patterns(id,organization_id,role_id,name,weight,steps)
+          VALUES($1,$2,$3,$4,$5,$6::jsonb)
+          ON CONFLICT(organization_id,role_id,name) DO UPDATE SET weight=EXCLUDED.weight, steps=EXCLUDED.steps`,
+          [randomUUID(), user.organizationId, target.id, name, weight, JSON.stringify(steps)]);
+      }
+    });
+    return forAllRoles
+      ? `الگوی چرخش «${name}» برای ${faNumber(targets.rowCount)} نقش ذخیره شد. برای اعمال آن، برنامه را دوباره بسازید.`
+      : `الگوی چرخش «${name}» ذخیره شد. برای اعمال آن، برنامه را دوباره بسازید.`;
+  });
+}
+
+export async function removeRotationPattern(form: FormData) {
+  await dashboardAction(async () => {
+    const user = await requireUser();
+    await db().query("DELETE FROM rotation_patterns WHERE id=$1 AND organization_id=$2", [uuid(form, "patternId"), user.organizationId]);
+    return "الگوی چرخش حذف شد.";
   });
 }
 

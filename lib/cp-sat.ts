@@ -35,16 +35,21 @@ export async function generateWithCpSat(input: Input, suppliedSeed?: number): Pr
   const positions = expandPositions(input);
   const seed = suppliedSeed ?? randomInt(1, 0x7fffffff);
   const dates = Array.from({ length: 7 }, (_, i) => DateTime.fromISO(input.weekStart, { zone: input.timezone }).plus({ days: i }).toISODate()!);
+  const patterns = (input.patterns ?? []).filter(p => p.steps.length >= 2);
   const payload = {
     positions: positions.map(position => ({
       startMs: position.startMs, endMs: position.endMs, date: position.date,
-      minutes: position.minutes, night: position.night,
+      minutes: position.minutes, night: position.night, shiftId: position.shiftId,
       eligible: input.workers.flatMap((worker, i) =>
         worker.roleIds.includes(position.roleId) && !input.timeOff.some(leave =>
           leave.workerId === worker.id && position.startMs < Date.parse(leave.endsAt) && Date.parse(leave.startsAt) < position.endMs)
           ? [i] : []),
     })),
     workers: input.workers.map(worker => worker.id), rules: input.rules, dates, seed,
+    patterns: patterns.map(p => ({ weight: p.weight, steps: p.steps })),
+    // For each worker, the indexes (into `patterns`) of the cycles their roles define.
+    workerPatterns: input.workers.map(worker =>
+      patterns.flatMap((pattern, index) => worker.roleIds.includes(pattern.roleId) ? [index] : [])),
   };
   const solved = await runSolver(payload);
   const assignments: Assignment[] = solved.assignments.map(([p, w]) => ({ position: positions[p], workerId: input.workers[w].id }))

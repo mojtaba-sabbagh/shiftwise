@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="شیفت‌یار">
+  <defs>
+    <linearGradient id="mint" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5ed0ab"/>
+      <stop offset="1" stop-color="#2e9c78"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#mint)"/>
+  <path d="M46.9 27.72 A15.5 15.5 0 1 1 30.92 16.54" fill="none" stroke="#113f36" stroke-width="6.5"/>
+  <polygon points="40.33,15.88 31.34,22.51 30.5,10.57" fill="#113f36"/>
+</svg>

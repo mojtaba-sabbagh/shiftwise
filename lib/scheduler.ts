@@ -12,6 +12,17 @@ export type Rules = {
   maxNightShifts: number;
   nightStartHour: number;
 };
+// A soft rotation preference for one role: an ordered cycle of shift template
+// ids, where the literal token "off" marks a rest day. The cycle repeats, so
+// the last step is followed by the first. Example: ["morning", "evening",
+// "night", "off"] means "morning → evening → night → rest → morning → …".
+export type RotationPattern = {
+  id: string;
+  roleId: string;
+  name: string;
+  weight: number;
+  steps: string[];
+};
 export type Input = {
   weekStart: string;
   timezone: string;
@@ -21,6 +32,7 @@ export type Input = {
   coverage: Coverage[];
   timeOff: TimeOff[];
   rules: Rules;
+  patterns?: RotationPattern[];
 };
 export type Position = {
   id: string;

@@ -1,9 +1,10 @@
 import { db } from "@/lib/db";
-import type { Coverage, Input, Role, Rules, Shift, TimeOff, Worker } from "@/lib/scheduler";
+import type { Coverage, Input, Role, RotationPattern, Rules, Shift, TimeOff, Worker } from "@/lib/scheduler";
 
 export type OrganizationData = Input & {
   workerRecords: (Worker & { email: string; active: boolean })[];
   coverageRecords: (Coverage & { roleName: string; shiftName: string })[];
+  rotationPatterns: (RotationPattern & { roleName: string })[];
   timeOffRecords: (TimeOff & { id: string; workerName: string; reason: string })[];
   lastRun: {
     id: string; weekStart: string; status: string; requiredCount: number; assignedCount: number; createdAt: string;
@@ -16,7 +17,7 @@ export type OrganizationData = Input & {
 
 export async function loadOrganization(organizationId: string, timezone: string, weekStart: string): Promise<OrganizationData> {
   const pool = db();
-  const [roleRows, workerRows, shiftRows, coverageRows, leaveRows, rulesRows, runRows] = await Promise.all([
+  const [roleRows, workerRows, shiftRows, coverageRows, leaveRows, rulesRows, runRows, patternRows] = await Promise.all([
     pool.query("SELECT id,name,color FROM roles WHERE organization_id=$1 ORDER BY name", [organizationId]),
     pool.query(`SELECT w.id,w.name,w.email,w.active,COALESCE(array_agg(wr.role_id) FILTER (WHERE wr.role_id IS NOT NULL),'{}') AS role_ids
       FROM workers w LEFT JOIN worker_roles wr ON wr.worker_id=w.id WHERE w.organization_id=$1 GROUP BY w.id ORDER BY w.name`, [organizationId]),
@@ -29,6 +30,9 @@ export async function loadOrganization(organizationId: string, timezone: string,
       ORDER BY t.starts_at`, [organizationId]),
     pool.query("SELECT * FROM scheduling_rules WHERE organization_id=$1", [organizationId]),
     pool.query("SELECT * FROM schedule_runs WHERE organization_id=$1 ORDER BY created_at DESC LIMIT 1", [organizationId]),
+    pool.query(`SELECT p.id,p.role_id,r.name AS role_name,p.name,p.weight,p.steps
+      FROM rotation_patterns p JOIN roles r ON r.id=p.role_id
+      WHERE p.organization_id=$1 ORDER BY r.name,p.name`, [organizationId]),
   ]);
   const roles: Role[] = roleRows.rows.map(r => ({ id: r.id, name: r.name, color: r.color }));
   const workerRecords = workerRows.rows.map(w => ({ id: w.id, name: w.name, email: w.email || "", active: w.active, roleIds: w.role_ids as string[] }));
@@ -36,6 +40,10 @@ export async function loadOrganization(organizationId: string, timezone: string,
   const coverageRecords = coverageRows.rows.map(c => ({ id: c.id, weekday: c.weekday, count: c.required_count, shiftId: c.shift_id, roleId: c.role_id, roleName: c.role_name, shiftName: c.shift_name }));
   const timeOffRecords = leaveRows.rows.map(t => ({ id: t.id, workerId: t.worker_id, workerName: t.worker_name,
     startsAt: t.starts_at.toISOString(), endsAt: t.ends_at.toISOString(), reason: t.reason }));
+  const rotationPatterns: (RotationPattern & { roleName: string })[] = patternRows.rows.map(p => ({
+    id: p.id, roleId: p.role_id, roleName: p.role_name, name: p.name, weight: p.weight,
+    steps: Array.isArray(p.steps) ? (p.steps as string[]) : [],
+  }));
   const raw = rulesRows.rows[0];
   const rules: Rules = { minRestHours: raw.min_rest_hours, maxWeeklyHours: raw.max_weekly_hours,
     maxConsecutiveDays: raw.max_consecutive_days, maxNightShifts: raw.max_night_shifts, nightStartHour: raw.night_start_hour };
@@ -56,5 +64,5 @@ export async function loadOrganization(organizationId: string, timezone: string,
   }
   return { weekStart, timezone, roles, workers: workerRecords.filter(w => w.active), workerRecords,
     shifts, coverage: coverageRecords.filter(c => shifts.some(s => s.id === c.shiftId)), coverageRecords,
-    timeOff: timeOffRecords, timeOffRecords, rules, lastRun };
+    timeOff: timeOffRecords, timeOffRecords, rules, patterns: rotationPatterns, rotationPatterns, lastRun };
 }

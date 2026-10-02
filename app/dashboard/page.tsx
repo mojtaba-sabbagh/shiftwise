@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   LogOut,
   Plus,
+  Repeat,
   Settings2,
   ShieldCheck,
   Trash2,
@@ -24,6 +25,7 @@ import { loadOrganization } from "@/lib/data";
 import { faDate, faDateTime, faNumber } from "@/lib/format";
 import { JalaliDatePicker } from "./JalaliDatePicker";
 import { RosterTable } from "./RosterTable";
+import { RotationPatterns } from "./RotationPatterns";
 import { ShiftCoverage } from "./ShiftCoverage";
 import { WorkersTable } from "./WorkersTable";
 import {
@@ -85,6 +87,9 @@ export default async function Dashboard({
           </a>
           <a href="#rules" className="sidebar-link">
             <Settings2 size={17} /> قوانین برنامه‌ریزی
+          </a>
+          <a href="#rotation" className="sidebar-link">
+            <Repeat size={17} /> الگوهای چرخش
           </a>
         </nav>
         <div className="mt-auto hidden rounded-xl border border-[#47736b] bg-[#28534a] p-4 lg:block">
@@ -583,6 +588,8 @@ export default async function Dashboard({
             </form>
           </div>
         </section>
+
+        <RotationPatterns data={data} />
 
         <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-[#dce8df] pt-6 text-[11px] text-[#92a69a]">
           <span>شیفت‌یار · {user.organizationName}</span>
